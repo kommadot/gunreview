@@ -5,9 +5,17 @@
 		
 			<!-- 입력한 키워드에 적합한 장소을 맵에 추가합니다. -->
 			<input type="text" placeholder="search" v-model="searchTxt" @keydown.enter="keywordSearch">			
-		
+			  <input type="checkbox" id="food" value="맛집" v-model="checkedCategory">
+			  <label for="food">맛집</label>
+			  <input type="checkbox" id="pc" value="PC방" v-model="checkedCategory">
+			  <label for="pc">PC방</label>
+			  <input type="checkbox" id="cinema" value="영화관" v-model="checkedCategory">
+			  <label for="cinema">영화관</label>
+			  <br>
+  				<span>체크한 카테고리: {{ checkedCategory }}</span>
 			
 			<div id="map" style="width:100%;height:700px;"></div>
+			<Review :title='title' :isClick='isClick'></Review>
 	</div>
 </template>
 
@@ -15,11 +23,15 @@
 
 import http from "@/util/http-common.js"
 import axios from "axios"
+import Review from "@/components/Review.vue";
 	
 String.prototype.replaceAll = function(org, dest) {
     return this.split(org).join(dest);
 }
 export default {
+	components: {
+		Review
+	},
     data(){
         return{
 			searchTxt:"",
@@ -28,6 +40,9 @@ export default {
 			mapOption:"",
 			mapContainer:"",
 			geocoder:"",
+			checkedCategory:[],
+			title:'',
+			isClick:false,
         }
     },
     created(){
@@ -126,7 +141,7 @@ export default {
 							console.dir(result[i].id);
 							
 							// 서버로 클릭한 장소에 대한 정보를 요청합니다.
-							getPlace(result[i].id);
+							getPlace(result[i].id, result[i].place_name);
 						});
 						
 						
@@ -141,13 +156,15 @@ export default {
 		},
 		
 		// 장소id에 해당하는 정보를 서버에 요청합니다.
-		getPlace(id){
+		getPlace(id, name){
 			//https -> http로의 요청으로 인해 브라우저에서 보안 문제로 요청을 차단될 수 있습니다
 			//https://docs.adobe.com/content/help/ko-KR/target/using/experiences/vec/troubleshoot-composer/mixed-content.translate.html를 참조하여 설정하거나 https -> https 또는 http -> http로 요청하는 형태가 되어야 합니다
 			//axios.get('http://3.23.110.174:8080/GunReview/api/shop/' + '16618597') //테스트
 			axios.get('http://3.23.110.174:8080/GunReview/api/shop/' + id)			
 			     .then(({data}) => {
 					console.dir(data);				
+					this.title = name;
+					this.isClick = !this.isClick;
 					/*
 						반환된 장소 정보를 출력하는 코드를 작성합니다.
 						
