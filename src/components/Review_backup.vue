@@ -1,4 +1,5 @@
 <template>
+테스트용안녕안녕
     <div>        
         <div class="dim-layer">
             <div class="dimBg"></div>
@@ -6,7 +7,14 @@
                 <div class="pop-container">
                     <div class="pop-conts">
                         <!--content //-->    
-                        <div style="width:100%; text-align:left;"> {{title}} </div>                        
+                        <div style="width:100%; text-align:left;"> {{title}} / {{id}}</div>                        
+						
+						<div style="width:100%; text-align:left;">상세정보</div>
+						<div class="subject">                            
+                            
+                        </div>
+						
+						
                         <div style="width:100%; text-align:left;">평가하기</div>
                         
                         <div class="content">                            
@@ -16,17 +24,33 @@
                                 </span>
                             </div>
                             <div class="write_review">                                        
-                                <textarea name="contents" class="review"></textarea>
-                            </div>                                    
-                        </div>
+                                <textarea name="contents" class="review" v-model="contents"></textarea>
+                            </div>          
+							<div class="btn-r" style="text-align:center;">
+								<a href="#" class="btn-layerAdd" @click="addReview()">등록하기</a>
+								<a href="#" class="btn-layerClose">취소</a>                             
+							</div>
+                        </div>                        
 
-                        <div class="btn-r" style="text-align:center;">
-                            <a href="#" class="btn-layerAdd">등록하기</a>
-                            <a href="#" class="btn-layerClose">취소</a>                             
-                        </div>
-
+						<div style="width:100%; text-align:left;">전체 {{reviewList.length}}</div>
+						<div style="width:100%; text-align:left;">평점 {{average}}</div>
                         <div class="list">
-                            
+							<table v-for="review in reviewList">
+								<tr>
+									<td>평점</td>
+									<td>review.grade</td>
+								</tr>
+								<tr>
+									<td>내용</td>
+									<td>review.content</td>
+								</tr>
+								<tr>
+									<td>시간</td>
+									<td>review.date</td>
+								</tr>
+							</table>
+								
+								
                         </div>
                         <!--// content-->
                     </div>
@@ -40,38 +64,44 @@
 import axios from "axios";
 export default {
     name: 'Review',
-    props: ["title", "isClick"],    
+    props: ["title", "isClick", "id"],    
     data(){
         return {
             reviewList: [],
-            point:0,
+			average:0,
+			
+			contents:'',
+            grade:0,
         }
     },
     watch:{        
         isClick(){
-			this.point=0;
-            this.layer_popup('#layer');			
+            this.layer_popup('#layer');
         }
     },
     methods:{
-		//별점 관련 마우스 이벤트 처리
-		//************************************
+		addReview(){
+			axios.post('http://3.23.110.174:8080/GunReview/api/review/' + this.id, {
+				contents: this.contents,
+				grade: this.grade
+			}).then(({data}) => {
+				this.reviewList.push({contents, grade, data:new date()});
+			})	
+		},		
         outStarRate(){
-            this.$refs.innerStar.style.width = this.point*20 + "%";
+            this.$refs.innerStar.style.width = this.grade*20 + "%";
         },
         moveStarRate(event){
+            console.dir(event);
             var starWidth = 151;
             this.$refs.innerStar.style.width = (parseInt(event.offsetX / starWidth * 5)+1)*20 + "%";
         },
         clickStarRate(event){
             var starWidth = 151;
-            this.point = parseInt(event.offsetX / starWidth * 5) + 1;
+            this.grade = parseInt(event.offsetX / starWidth * 5) + 1;
         },
-		//************************************
-		
-		
-		//마커 클릭 시 팝업 창 출력
         layer_popup(el) {            
+            console.dir(el);
             var $el = $(el);        //레이어의 id를 $el 변수에 저장
             var isDim = $el.prev().hasClass('dimBg');   //dimmed 레이어를 감지하기 위한 boolean 변수
 
@@ -87,7 +117,7 @@ export default {
                 $el.css({
                     marginTop: -$elHeight /2,
                     marginLeft: -$elWidth/2
-                })
+                })				
             } else {
                 $el.css({top: 0, left: 0});
             }
@@ -232,6 +262,11 @@ export default {
         color: #444;
         resize: none;
         -webkit-appearance: none;
+    }
+	
+	.content, .subject {
+        margin-top: 11px;
+        border: 1px solid #ddd;
     }
 
     .content {
