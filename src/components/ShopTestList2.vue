@@ -4,7 +4,6 @@
         <div>
             <v-text-field
                 solo
-						  border-color="green darken-2"
                 label="Search"
                 append-icon="mdi-menu"
                 v-model="searchTxt"
@@ -12,15 +11,14 @@
                 class="ma-3"
                 style="opacity: 0.7;"
                 @click:append="drawer = !drawer"
-				@click="getFilter"
+				autofocus
 				hide-details="true"
-				id="search"
             ></v-text-field>
         </div>
         <!-- <Review :title="title" :isClick="isClick" :id="id"></Review> -->
 
             <v-navigation-drawer v-model="drawer" absolute temporary width="70%">
-                <v-list>
+                <!-- <v-list>
                     <v-list-item>
                         <v-btn icon @click="drawer=!drawer">
                             <v-icon>mdi-close</v-icon>
@@ -29,8 +27,6 @@
                     </v-list-item>
                     <v-divider></v-divider>
 					<v-container class="ma-3 py-0">
-						
-
 						<v-row align="center" justify="center">
 						<v-col v-for="item in keywords" :key="item.name">
 												<v-btn-toggle
@@ -66,16 +62,10 @@
 								></v-rating>
 						</fieldset>
 					</v-list-item>
-                </v-list>
+                </v-list> -->
             </v-navigation-drawer>
-		      <v-snackbar
-        v-model="snackbar"
-        :timeout="2000"
-						  style="text-align:center;"
-      >
-        검색하고자 하는 카테고리를 골라주십시오.
-      </v-snackbar>
-			<v-bottom-sheet v-model="sheet" scrollable >
+		
+			<!-- <v-bottom-sheet v-model="sheet" scrollable >
 				<v-card>
 				<v-card-title>정렬 옵션 구현하기</v-card-title>
 				<v-divider></v-divider>
@@ -122,7 +112,7 @@
 						<div>공백  </div>
 				</v-card-text>
 			  </v-card>	  
-      		</v-bottom-sheet>
+      		</v-bottom-sheet> -->
     </v-app>
 </template>
 
@@ -157,7 +147,7 @@
 				
                 keywords: [{name:"PC방",icon:"mdi-desktop-mac"},{name: '맛집',icon:"mdi-food"},{name: '영화관',icon:"mdi-popcorn"},{name:'모텔',icon:"mdi-bed"},{name:"찜질방",icon:"mdi-hot-tub"}],
                 drawer: null,
-				snackbar:null,
+				
 				sheet: false,	
             };
         },
@@ -177,22 +167,15 @@
 				this.$refs.test.style.height = this.offsetTop + 100 + 'px';
 				console.dir(this.$refs.test.style.height);
 			},
-			getFilter(){
-				if(this.checkedCategory.length===0){
-					this.drawer=true;
-					this.snackbar=true;
-					document.getElementById("search").blur();
-				}
-			},
+			
             locationSearch() {
                 this.geocoder.addressSearch(this.searchTxt, (result, status) => {
                     if (status === kakao.maps.services.Status.OK) {
                         this.location = new kakao.maps.LatLng(result[0].y, result[0].x);
                         this.map.setCenter(this.location);
-						this.getMarkers();
-						this.sheet = true;
                     }
                 });
+                this.checkedCategory = [];
                 this.markers = {};
             },
 
@@ -216,8 +199,22 @@
 					
                 });
             },
-			getMarkers(){
-				for (let key in this.markers) {
+        },
+        computed: {
+            selections() {
+                const selections = [];
+                for (const selection of this.checkedCategory) {
+                    selections.push(selection);
+                }
+                return selections;
+            },
+            allSelected() {
+                return this.checkedCategory.length === this.keywords.length;
+            },
+        },
+        watch: {
+            checkedCategory() {
+                for (let key in this.markers) {
                     this.markers[key].forEach((marker) => {
                         marker.setMap(null);
                     });
@@ -237,7 +234,7 @@
                             element.name,
                             (result, status) => {
 								this.shops = result;
-								
+								this.sheet = true;
                                 if (status === kakao.maps.services.Status.OK) {
                                     for (let i in result) {
                                         let coords = new kakao.maps.LatLng(
@@ -277,83 +274,7 @@
                         this.markers[element.name] = array;
                     }
                 });
-			}
-        },
-        computed: {
-            selections() {
-                const selections = [];
-                for (const selection of this.checkedCategory) {
-                    selections.push(selection);
-                }
-                return selections;
-            },
-            allSelected() {
-                return this.checkedCategory.length === this.keywords.length;
-            },
-        },
-        watch: {
-            checkedCategory() {
-								// for (let key in this.markers) {
-								// this.markers[key].forEach((marker) => {
-								// marker.setMap(null);
-								// });
-								// }
-
-								// this.checkedCategory.forEach((element) => {
-								// if (this.markers[element.name] !== undefined) {
-								// this.markers[element.name].forEach((marker) => {
-								// marker.setMap(this.map);
-								// });
-								// } else {
-								// let places = new kakao.maps.services.Places();
-								// var map = this.map;
-								// var getPlace = this.getPlace;
-								// var array = [];
-								// places.keywordSearch(
-								// element.name,
-								// (result, status) => {
-								// this.shops = result;
-								// this.sheet = true;
-								// if (status === kakao.maps.services.Status.OK) {
-								// for (let i in result) {
-								// let coords = new kakao.maps.LatLng(
-								// result[i].y,
-								// result[i].x
-								// );
-
-								// // 결과값으로 받은 위치를 마커로 표시합니다
-								// let marker = new kakao.maps.Marker({
-								// map: this.map,
-								// position: coords,
-								// });
-								// kakao.maps.event.addListener(marker, 'click', function (
-								// el
-								// ) {
-								// 			http.post('/api/shop', {
-								// 			  address_name: result[i].address_name ,
-								// 			  category_group_code: result[i].category_group_code ,
-								// 			  category_group_name: result[i].category_group_name ,
-								// 			  id: result[i].id ,
-								// 			  lat: result[i].y,
-								// 			  lng: result[i].x,
-								// 			  phone: result[i].phone,
-								// 			  place_name: result[i].place_name,
-								// 			  place_url: result[i].place_url,
-								// 			  road_address_name: result[i].road_address_name
-								// 			})
-								// 			window.open(`placereview?title=${result[i].place_name}&id=${result[i].id}`);
-								// });
-								// 		// kakao.maps.event.addListener(marker, 'click',getPlace(result[i]))
-								// array.push(marker);
-								// }
-								// }
-								// },
-								// { location: this.location }
-								// );
-								// this.markers[element.name] = array;
-								// }
-								// });
-				this.getMarkers();
+				console.log(this.markers);
             },
         },
     };

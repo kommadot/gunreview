@@ -8,35 +8,20 @@
 		<v-list-item>
 		  <v-list-item-content>
 			<div style="text-align:center; margin-bottom:15px;">
-				<span class="text-h5 mb-2" style="display: inline-block;">{{info.place_name}}</span>				 
-				<span class="grey--text mb-2"> {{info.category_group_name}} </span>
-			</div>
-			<div class="place_nav">	
-				<div class="nav_btn">
-					<span style="display:block;"><i class="fas fa-phone-alt" style="font-size:20px"></i></span>
-					<span style="display:block; margin-top:10px">전화</span>
-				</div>
-				
-				<div class="nav_btn">
-					<span style="display:block;"><i class="fas fa-map-marker-alt" style="font-size:20px"></i></span>
-					<span style="display:block; margin-top:10px">지도</span>
-				</div>
-				
-				<div class="nav_btn">
-					<span style="display:block;"><i class="far fa-bookmark" style="font-size:20px"></i></span>
-					<span style="display:block; margin-top:10px">저장하기</span>
-				</div>
-				
-				<div class="nav_btn" style="border-right:none">
-					<span style="display:block;"><i class="fas fa-share-square" style="font-size:20px"></i></span>
-					<span style="display:block; margin-top:10px">공유</span>
-				</div>
-			</div>
+				<span class="text-h5 mb-2" style="display: inline-block;">{{info.name}}</span>			
+			</div>			
 			
 			<div class="place_info">
-				<span class="info_elmt"><i class="fas fa-map-marker-alt" style="margin-right:10px"></i> {{info.road_address_name}}</span>
-				<span class="info_elmt"><i class="far fa-clock" style="margin-right:10px"></i> 영업시간</span>
-				<span class="info_elmt"><i class="fas fa-phone-alt" style="margin-right:10px"></i> {{info.phone}}</span>								
+				<span class="info_elmt"><i class="fas fa-won-sign" style="float:left;"></i> 
+					
+					<div style="width:50%; float:left; margin:0px 10px;">
+						<span v-show="!editPrice">{{c_price}}원 </span>
+						<v-text-field v-model="price" :rules="rules" v-show="editPrice" dense height="1.0em" @keydown.enter="editPrice = !editPrice">
+						</v-text-field>
+					</div>
+					<i class="far fa-edit" @click="editPrice = !editPrice"></i> 
+				</span>
+				<span class="info_elmt">상세 정보 <i class="far fa-edit"></i> </span>				
 			</div>
 			  
 		  </v-list-item-content>		  
@@ -139,25 +124,50 @@ export default {
 		rating: 0,
 		average: 0,
 		count: 0,
+		price: '0',
 		title: '',
 		id:0,
+		
+		editPrice: false,
+		editInfo: false,
+		
+		rules: [
+		value => !(value.length == 0 || value[0] == '0') || 'Invalid Number',
+        value => (value || '').length <= 10 || 'Max 10 characters',
+        value => {
+          const pattern = /^[0-9]*$/
+          return pattern.test(value) || 'Invalid Number'
+        },
+      ],
 	}	
+  },
+  computed: {
+    c_price() {
+	  let i = 0;		
+	  for(i in this.price){
+		  if(this.price[i] != '0')
+			  break;
+	  }		
+	  if(this.price.length <= 1)
+		  return this.price;
+      return this.price.substring(i);
+    }
   },
   methods:{
 	  openReviewWrite(event, value){
-		  this.$router.push(`addreview?title=${this.title}&id=${this.id}&rating=${this.rating}`);
-	  }
+		  this.$router.push(`addreview?title=${this.title}&id=${this.id}&rating=${this.rating}&type=1`);
+	  },
   },
   created(){	 
 	  this.id = this.$route.query.id;
 	  this.title = this.$route.query.title;	  	  
 	  console.dir(this.id);
-	  http.get('/api/shop/' + this.id).then(({data}) => {
+	  http.get('/api/px/' + this.id).then(({data}) => {
 		  console.dir(data);
 		  this.info = data;
 	  })
 	  
-	  http.get('/api/reviewShop/' + this.id).then(({data}) => {
+	  http.get('/api/reviewPX/' + this.id).then(({data}) => {
 		  console.dir(data);
 		  if(data.length != 0) {
 			  this.reviewList = data;
@@ -206,6 +216,7 @@ export default {
 		display:block;
 		padding:15px 0px; 		
 		border-bottom:1px solid #f2f2f2;		
+		font-size:1.2em;
 	}
 	
 	.review_add {

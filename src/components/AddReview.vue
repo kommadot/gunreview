@@ -9,7 +9,7 @@
 		  <v-list-item>
 		  	<v-list-item-content>
 				<div class="reviewTitle">
-					<a href="#" style="color:#000000; float:left" @click="closeReview">취소</a>					
+					<a href="#" style="color:#000000; float:left" @click="moveReviewList(true)">취소</a>					
 					<a href="#" style="float:right" @click="addReview">등록</a>
 					<div style="position:absolute; font-size:1.2em;text-align:center; width:100%">{{title}}</div>
 				</div>				
@@ -31,6 +31,7 @@
           		:row-height="height"
 				rounded
 				placeholder="이 장소의 어떤점이 마음에 드셨나요?"
+				v-model="contents"
         ></v-textarea>
 			<i ref="camera" class="fas fa-camera" style="font-size:50px;"></i>			
 			</v-list-item-content>
@@ -48,6 +49,7 @@ export default {
   name: 'AddReview',  
   data() {
 	return {
+		nickList: ['귀여운 이등병', '성실한 일병', '엘리트 상병', '멋쟁이 병장'],
 		id:0,
 		rating:0,
 		title:'',		
@@ -67,20 +69,27 @@ export default {
 	   }
   },
   methods:{
-	  closeReview(){
-		self.close();
+	  moveReviewList(flag){
+		if(flag){
+			if(!confirm('정말로 취소하시겠습니까?')){
+				return;
+			}
+		}else{
+			alert("등록이 완료되었습니다");			
+		}
+		this.$router.push(`/placereview?title=${this.title}&id=${this.id}`);  
 	  },
 	  addReview(){		  
 		http.post('/api/reviewShop', {
 		  review_content: this.contents,
 		  review_img: '',
-		  review_nickname: "귀여운 이등병",
+		  review_nickname: this.nickList[Math.floor( Math.random() * 4 )],
 		  review_rate: this.rating,
 		  review_userid: '',
 		  shop_id: this.id
 		}).then(({data}) => {
 			if(data == 'success'){
-				this.closeReview();
+				this.moveReviewList(false);
 			}
 		})
 	  }
