@@ -1,13 +1,18 @@
 <template>  
     <v-app id="Review">
+		<add-review v-show="false" :dialog2="dialog2" :info="info" :rating="rating" type="0" v-on:writeReview="getReviewList"></add-review>
+		<v-dialog v-model="dialog" fullscreen transition="dialog-bottom-transition">
       <v-card
 		class="mx-auto"		
 		tile
 		flat
 	  >
 		<v-list-item>
-		  <v-list-item-content>
+		  <v-list-item-content>			
 			<div style="text-align:center; margin-bottom:15px;">
+				<div style="float:left">
+					<i class="fas fa-arrow-left" @click="closeReview"></i>
+				</div>
 				<span class="text-h5 mb-2" style="display: inline-block;">{{info.place_name}}</span>				 
 				<span class="grey--text mb-2"> {{info.category_group_name}} </span>
 			</div>
@@ -78,7 +83,7 @@
 						></v-rating>
 					</div>
 					<div style="float:right;margin-top:1.0em;">
-						<i class="fas fa-user-friends" style="color:gray"></i>	{{count}}
+						<i class="fas fa-user-friends" style="color:gray"></i>	{{info.review_num}}
 					</div>
 				</div>
 				<v-card tile flat>
@@ -106,8 +111,14 @@
 						  <v-list-item-subtitle>
 							  <span class='text--primary' style="font-size:1.0em;">{{review.review_nickname}}</span> &#124; {{review.review_datetime.substring(0,10)}}
 						  </v-list-item-subtitle>
-						  <div style="height:10px"></div>
-						  <v-list-item-subtitle><span class='text--primary' style="font-size:1.0em;">{{review.review_content}}</span></v-list-item-subtitle>
+						  <div style="height:5px"></div>						  
+							<v-img
+							  :src = "'https://gunreview.ml/gunreview/resources/upload/'+review.review_img"
+							  max-height="100px"
+							  max-width="100px"
+							></v-img>
+							<div style="height:10px"></div>			
+							<v-list-item-subtitle><span class='text--primary' style="font-size:1.0em;">{{review.review_content}}</span></v-list-item-subtitle>
 						</v-list-item-content>
 					  </v-list-item>
 					  <v-divider :key="index + '_divider'" :inset="true"></v-divider>
@@ -117,58 +128,59 @@
 			</v-list-item-content>
 		  </v-list-item>		  		  
 	  </v-card>	  
-	  <div style="height:100px;"></div>
-	</v-card>
+	  <!-- <div style="height:100px;"></div> -->
+	</v-dialog>
     </v-app>
 </template>
 
 <script>
 import http from "@/util/http-common.js"
+import AddReview from "@/components/AddReview.vue"
 	
 export default {
   name: 'PlaceReview',   
+  props: ['dialog', 'info'],
+  components:{
+	  AddReview,
+  },
   watch: {
-	  rating(){		  
-		  
+	  dialog(){		  
+		if(this.dialog == true){
+			this.getReviewList();
+		}
 	  }
   },
   data() {
 	return {
 		reviewList: [],
-		info: {},
 		rating: 0,
 		average: 0,
-		count: 0,
-		title: '',
-		id:0,
+		dialog2: false,
 	}	
   },
   methods:{
+	  closeReview(){
+		this.$emit('closeReview');
+	  },
 	  openReviewWrite(event, value){
-		  this.$router.push(`addreview?title=${this.title}&id=${this.id}&rating=${this.rating}`);
+		  this.dialog2 = true;
+	  },
+	  getReviewList(){
+		  this.dialog2 = false;
+		  http.get('/api/reviewShop/' + this.info.id).then(({data}) => {				  
+				  if(data.length != 0) {
+					  this.reviewList = data;
+					  if(this.info.review_num == 0){
+					  	this.average = 0;
+					  }else{
+						this.average = (this.info.sum_rate/this.info.review_num).toFixed(1);
+					  }
+				  }			  
+			})
 	  }
   },
-  created(){	 
-	  this.id = this.$route.query.id;
-	  this.title = this.$route.query.title;	  	  
-	  console.dir(this.id);
-	  http.get('/api/shop/' + this.id).then(({data}) => {
-		  console.dir(data);
-		  this.info = data;
-	  })
+  created(){	
 	  
-	  http.get('/api/reviewShop/' + this.id).then(({data}) => {
-		  console.dir(data);
-		  if(data.length != 0) {
-			  this.reviewList = data;
-			  this.count = data.length;
-			  let sum = 0;
-			  for(let i in data){
-				  sum += parseInt(data[i].review_rate);
-			  }
-			  this.average = (sum/this.count).toFixed(1);
-		  }
-	  })
   },    
 }
 </script>

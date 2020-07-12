@@ -1,6 +1,6 @@
 <template>  
     <v-app id="AddReview">
-		
+	  <v-dialog v-model="dialog2" fullscreen transition="dialog-bottom-transition">
       <v-card
 		class="mx-auto"		
 		tile
@@ -11,7 +11,7 @@
 				<div class="reviewTitle">
 					<a href="#" style="color:#000000; float:left" @click="moveReviewList(true)">취소</a>					
 					<a href="#" style="float:right" @click="addReview">등록</a>
-					<div style="position:absolute; font-size:1.2em;text-align:center; width:100%">{{title}}</div>
+					<div style="position:absolute; font-size:1.2em;text-align:center; width:100%">{{info.place_name}}</div>
 				</div>				
 					<div class="write_grade">
 						<v-rating
@@ -33,11 +33,29 @@
 				placeholder="이 장소의 어떤점이 마음에 드셨나요?"
 				v-model="contents"
         ></v-textarea>
-			<i ref="camera" class="fas fa-camera" style="font-size:50px;"></i>			
+			<input type="file"
+				v-show="false"				
+				id="file"
+				accept="image/png, image/jpeg, image/bmp"		
+				@change="changeImg"
+			></input>			  
+				
+			<i v-show="img_path.length == 0" ref="camera" class="fas fa-camera" style="font-size:50px;" @click="clickImg($event)"></i>			
+			<v-img
+				:src = "'https://gunreview.ml/gunreview/resources/upload/'+img_path"
+				max-width = "200px"
+				max-height = "200px"
+				@click="clickImg($event)"
+			>
+			</v-img>
+			 <div style="height:100px">
+				 
+	</div>
 			</v-list-item-content>
 		  </v-list-item>
 		  
-	  </v-card>	  		  
+	  </v-card>	  
+	  </v-dialog>
     </v-app>
 </template>
 
@@ -47,15 +65,14 @@ import http from "@/util/http-common.js"
 	
 export default {
   name: 'AddReview',  
+  props:['dialog2', 'info', 'rating', 'type'],
   data() {
 	return {
 		nickList: ['귀여운 이등병', '성실한 일병', '엘리트 상병', '멋쟁이 병장'],
-		id:0,
-		rating:0,
-		title:'',		
 		contents: '',
+		img_path: '',
+		nickname: '',
 		height:'300px',
-		tmp:'50px',
 	}	
   },
   filters: {
@@ -69,41 +86,59 @@ export default {
 	   }
   },
   methods:{
+	  changeImg(e){		
+		var frm = new FormData();
+		frm.append("upload_file", document.getElementById("file").files[0]);
+		http.post('/api/reviewShop/upload', frm, {
+		  headers: {
+			'Content-Type': 'multipart/form-data'
+		  }
+		})
+		.then(({data}) => {
+		  console.dir(data);
+		  this.img_path = data.substring(52);
+			console.dir(this.img_path)
+		})
+		.catch((error) => {
+		  // 예외 처리
+		})
+	  },
+	  clickImg(){
+		$("#file").click();
+	  },
 	  moveReviewList(flag){
 		if(flag){
 			if(!confirm('정말로 취소하시겠습니까?')){
 				return;
 			}
+			this.dialog2 = false;
 		}else{
-			alert("등록이 완료되었습니다");			
-		}
-		this.$router.push(`/placereview?title=${this.title}&id=${this.id}`);  
+			alert("등록이 완료되었습니다");					
+			this.$emit('writeReview');
+		}		
 	  },
 	  addReview(){		  
-		http.post('/api/reviewShop', {
-		  review_content: this.contents,
-		  review_img: '',
-		  review_nickname: this.nickList[Math.floor( Math.random() * 4 )],
-		  review_rate: this.rating,
-		  review_userid: '',
-		  shop_id: this.id
-		}).then(({data}) => {
-			if(data == 'success'){
-				this.moveReviewList(false);
-			}
-		})
+	      let url = this.type == 0 ? '/api/reviewShop' : '/api/reviewPX';
+			http.post(url, {
+			  review_content: this.contents,
+			  review_img: this.img_path,
+			  review_nickname: this.nickname,
+			  review_rate: this.rating,
+			  review_userid: '',
+			  shop_id: this.info.id
+			}).then(({data}) => {
+				if(data == 'success'){
+					this.moveReviewList(false);
+				}
+			})
 	  }
   },
-  created(){	 
-	  this.id = this.$route.query.id;
-	  this.rating = parseInt(this.$route.query.rating);
-	  this.title = this.$route.query.title;	  
-	  
+  created(){	   
+	  this.nickname = this.nickList[Math.floor( Math.random() * 4 )];
   },
-	mounted(){		
-		this.height = window.innerHeight - this.$refs.contents.$el.offsetTop -120 + 'px';
-	}
-	
+  mounted(){		
+	 //this.height = window.innerHeight - this.$refs.contents.$el.offsetTop - 200 + 'px';
+  }	
 }
 </script>
 
@@ -114,7 +149,6 @@ export default {
 	
 	#AddReview {
 		margin-left: 0px;
-		background-color: gray;
 	}
 	.write_grade{		
 		text-align:center;

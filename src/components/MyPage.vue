@@ -9,7 +9,7 @@
 		</button>
 			<v-dialog v-model="dialog" width="350">
 			<template v-slot:activator="{ on, attrs }">
-				<v-text v-bind="attrs">
+				<v-text v-bind="attrs" v-on="on">
 				  {{ month }}월
 				</v-text>
 			</template>
@@ -114,7 +114,7 @@ export default {
 	// http.get('/api/px/' + this.year +'/{month}?month='+ this.month).then(({data}) => {
 	//  	  this.info = data;
 	//    })
-	 http.get('/api/px/' + this.year +'/' + this.month).then(({data}) => {
+	 http.get('/api/px/' + this.year +'/{month}?month='+ this.month).then(({data}) => {
 		  console.dir(data);
 		  if(data.length != 0) {
 			  this.pxList = data;
@@ -135,7 +135,7 @@ export default {
 				this.year++;
 			}
 		this.month = this.month<10?	"0" + this.month : this.month;
-		http.get('/api/px/' + this.year +'/' +  this.month).then(({data}) => {
+		http.get('/api/px/' + this.year +'/{month}?month='+ this.month).then(({data}) => {
 		  console.dir(data);
 		  if(data.length != 0) {
 			  this.pxList = data;
@@ -151,7 +151,7 @@ export default {
 			this.year--;
 		}
 		this.month = this.month<10?	"0" + this.month : this.month;
-		http.get('/api/px/' + this.year +'/'+ this.month).then(({data}) => {
+		http.get('/api/px/' + this.year +'/{month}?month='+ this.month).then(({data}) => {
 		  console.dir(data);
 		  if(data.length != 0) {
 			  this.pxList = data;

@@ -27,7 +27,7 @@
             <v-btn value="px" @click="$router.push('/pxlist').catch(err => {})">
                 <span>PX</span>
             </v-btn>
-            <v-btn value="account" @click="$router.push('/info').catch(err => {})">
+            <v-btn value="account" @click="$router.push('/mypage').catch(err => {})">
                 <v-icon>mdi-account</v-icon>
             </v-btn>
         </v-bottom-navigation>

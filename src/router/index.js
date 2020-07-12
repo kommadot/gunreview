@@ -8,8 +8,11 @@ import PlaceReview from '@/components/PlaceReview.vue'
 import PxReview from '@/components/PxReview.vue'
 import AddReview from '@/components/AddReview.vue'
 import Pxlist from '@/components/Pxlist.vue'
+import Mypage from '@/components/MyPage.vue'
 import Layout from '@/layout/Layout.vue'
 import ST from '@/components/ShopTestList2.vue'
+
+import Login from '@/components/Login.vue'
 Vue.use(VueRouter)
 const routes = [
 	{
@@ -51,6 +54,17 @@ const routes = [
 				path: '/shoptest',
 				name: 'ShopTestList',
 				component:ShopTestList
+			},
+			{
+				path: '/mypage',
+				name: 'Mypage',
+				component:Mypage,
+			},
+			
+			{
+				path: '/login',
+				name: 'Login',
+				component:Login,
 			},
 		]
 	},

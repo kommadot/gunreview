@@ -1,5 +1,7 @@
 <template>  
     <v-app id="Review">
+		<v-dialog v-model="dialog" fullscreen hide-overlay transition="dialog-bottom-transition">
+	
       <v-card
 		class="mx-auto"		
 		tile
@@ -21,7 +23,9 @@
 					</div>
 					<i class="far fa-edit" @click="editPrice = !editPrice"></i> 
 				</span>
-				<span class="info_elmt">상세 정보 <i class="far fa-edit"></i> </span>				
+				<span class="info_elmt">상세 정보 <i class="far fa-edit" @click="editInfo = !editInfo"></i> </span>	
+				<span v-show="!editInfo" v-html="c_detail"></span>
+				<v-textarea v-model="detail" v-show="editInfo" dense outlined auto-grow></v-textarea>				
 			</div>
 			  
 		  </v-list-item-content>		  
@@ -103,13 +107,17 @@
 		  </v-list-item>		  		  
 	  </v-card>	  
 	  <div style="height:100px;"></div>
-	</v-card>
+	</v-dialog>
+	
     </v-app>
 </template>
 
 <script>
 import http from "@/util/http-common.js"
 	
+String.prototype.replaceAll = function (org, dest) {
+        return this.split(org).join(dest);
+};
 export default {
   name: 'PlaceReview',   
   watch: {
@@ -119,6 +127,8 @@ export default {
   },
   data() {
 	return {
+		dialog:true,
+		
 		reviewList: [],
 		info: {},
 		rating: 0,
@@ -127,6 +137,7 @@ export default {
 		price: '0',
 		title: '',
 		id:0,
+		detail: 'test\ntest',
 		
 		editPrice: false,
 		editInfo: false,
@@ -151,7 +162,10 @@ export default {
 	  if(this.price.length <= 1)
 		  return this.price;
       return this.price.substring(i);
-    }
+    },
+	c_detail(){
+		return this.detail.replaceAll("\n", "<br>");
+	}
   },
   methods:{
 	  openReviewWrite(event, value){
