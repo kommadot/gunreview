@@ -47,7 +47,7 @@
 		<v-list-item-content>
 			<div class="eachpx">
 				<div class="pxdivider" style="width:10%;">
-					<span id="px-index-id">{{index%10+1}}</span>
+					<span id="px-index-id">{{index%10 + 1}}</span>
 				</div>
 				<div class="pxdivider" style="width:80%;">
 					<span id="px-data-id">
@@ -55,13 +55,15 @@
 							<!-- <span style="display:block;">{{pxitem.criteria}}</span> -->
 							<span style="display:block;">{{pxitem.name}}</span>
 						  </v-list-item-title>
-						  <v-list-item-subtitle><span style="display:block;">10,000원</span></v-list-item-subtitle>
+						  <v-list-item-subtitle><span style="display:block;">{{pxitem.price}}원</span></v-list-item-subtitle>
 						  <v-list-item-subtitle>
 							  <v-rating						  
-							  v-model="pxitem.review_rate"
+							  v-model="pxitem.average"
 							  readonly
 							  small
 							  dense
+							  half-increments
+						 	  half-icon="mdi-star-half-full"
 							  background-color="grey lighten-1"
 							  color="red"
 							></v-rating>
@@ -71,7 +73,7 @@
 				<div class="pxdivider" style="width:10np,m%;">
 					<span id="px-image-id">
 						<v-img
-						  src="https://picsum.photos/350/165?random"
+						  :src = "pxitem.rep_img"
 						  height="60px"
 						  width="60px"
 						  class="grey darken-4"
@@ -108,7 +110,7 @@ export default {
 		pxList: [],
 		dialog: false,
 		reviewDialog: false,
-		picker: new Date().toISOString().substr(0, 7),
+		picker: new Date().toISOString().substr(0, 7),		
     }
   },
   created() {
@@ -122,67 +124,82 @@ export default {
 	// http.get('/api/px/' + this.year +'/{month}?month='+ this.month).then(({data}) => {
 	//  	  this.info = data;
 	//    })
-	 http.get('/api/px/' + this.year +'/' + this.month).then(({data}) => {
-		  console.dir(data);
-		  if(data.length != 0) {
-			  this.pxList = data;
-		  }
-	  })  
+	 this.getPxList(this.year, this.month)
   },
 	methods: {
-		// 이전이나 다음 데이터가 없을 때 데이터가 없다고 나와야되는데 그 전에 있던 데이터가 계속 넘어감! 
-    increment: function() {
-		if(this.latestmonth==this.month && this.latestyear==this.year)
-		{
-			alert("가장 최근 데이터입니다.");			
-		}else{
-			if(this.month<12){
-    	  		this.month++;		
+		// 이전이나 다음 데이터가 없을 때 데이터가 없다고 나와야되는데 그 전에 있던 데이터가 계속 넘어감! 	
+		increment: function() {
+			if(this.latestmonth==this.month && this.latestyear==this.year)
+			{
+				alert("가장 최근 데이터입니다.");			
 			}else{
-				this.month = 1;
-				this.year++;
+				if(this.month<12){
+					this.month++;		
+				}else{
+					this.month = 1;
+					this.year++;
+				}
+			this.month = this.month<10?	"0" + this.month : this.month;
+			this.getPxList(this.year, this.month);
+
 			}
-		this.month = this.month<10?	"0" + this.month : this.month;
-		http.get('/api/px/' + this.year +'/' +  this.month).then(({data}) => {
-		  console.dir(data);
-		  if(data.length != 0) {
-			  this.pxList = data;
-		  }
-	  })  
+		},
+		decrement: function() {
+			if(this.month>1){
+				this.month--;		
+			}else{
+				this.month = 12;
+				this.year--;
+			}
+			this.month = this.month<10?	"0" + this.month : this.month;
+			this.getPxList(this.year, this.month);
+		},
+		pxListoption: function(){
+			if(this.pxlistoptnum==0){
+				this.pxlistoption = "판매량순";
+				this.pxlistopt = "수량";
+				this.pxlistoptnum = 1;
+			}else if(this.pxlistoptnum==1){
+				this.pxlistoption = "판매금액순";
+				this.pxlistopt = "금액";
+				this.pxlistoptnum = 0;
+			}
+		},
+		openPxReview(info){
+			console.dir(info)
+			this.info = info;
+			this.reviewDialog = true;
+		},
+		getPxList(year, month){
+			http.get('/api/px/' + year +'/' + month).then(({data}) => {
+			  console.dir(data);
+			  if(data.length != 0) {
+				  this.pxList = data;
+				  for(let i in this.pxList){
+					  if(this.pxList[i].review_num){
+						this.pxList[i].average = (this.pxList[i].sum_rate / this.pxList[i].review_num).toFixed(1);
+					  }else{
+						  this.pxList[i].average = 0;
+					  }
+
+					  if(this.pxList[i].rep_img){
+						  this.pxList[i].rep_img = 'https://gunreview.ml/gunreview/resources/upload/' + this.pxList[i].rep_img;
+					  }else{
+						  this.pxList[i].rep_img = 'no_img.png';
+					  }
+
+					  if(!this.pxList[i].price){
+						  this.pxList[i].price = 0;
+					  }
+
+					  if(!this.pxList[i].detail){
+						  this.pxList[i].detail = '';
+					  }
+				  }
+			  }
+			})
 		}
-    },
-    decrement: function() {
-		if(this.month>1){
-    	  	this.month--;		
-		}else{
-			this.month = 12;
-			this.year--;
-		}
-		this.month = this.month<10?	"0" + this.month : this.month;
-		http.get('/api/px/' + this.year +'/'+ this.month).then(({data}) => {
-		  console.dir(data);
-		  if(data.length != 0) {
-			  this.pxList = data;
-		  }
-	  })  
-    },
-	pxListoption: function(){
-		if(this.pxlistoptnum==0){
-			this.pxlistoption = "판매량순";
-			this.pxlistopt = "수량";
-			this.pxlistoptnum = 1;
-		}else if(this.pxlistoptnum==1){
-			this.pxlistoption = "판매금액순";
-			this.pxlistopt = "금액";
-			this.pxlistoptnum = 0;
-		}
-	},
-	openPxReview(info){
-		console.dir(info)
-		this.info = info;
-		this.reviewDialog = true;
 	}
-  },
 };
 </script>
 <style scoped>

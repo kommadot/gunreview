@@ -20,17 +20,16 @@
 				<span class="info_elmt"><i class="fas fa-won-sign" style="float:left;"></i> 
 					
 					<div style="width:50%; float:left; margin:0px 10px;">
-						<span v-show="!editPrice">{{c_price}}원 </span>
-						<v-text-field v-model="price" :rules="rules" v-show="editPrice" dense height="1.0em" @keydown.enter="editPrice = !editPrice">
+						<span v-show="!editPrice">{{info.price}}원 </span>
+						<v-text-field v-model="info.price" :rules="rules" v-show="editPrice" dense height="1.0em" @keydown.enter="updatePrice">
 						</v-text-field>
 					</div>
-					<i class="far fa-edit" @click="editPrice = !editPrice"></i> 
+					<i class="far fa-edit" @click="updatePrice"></i> 
 				</span>
-				<span class="info_elmt">상세 정보 <i class="far fa-edit" @click="editInfo = !editInfo"></i> </span>	
-				<span v-show="!editInfo" v-html="c_detail"></span>
-				<v-textarea v-model="detail" v-show="editInfo" dense outlined auto-grow></v-textarea>				
+				<span class="info_elmt">상세 정보 <i class="far fa-edit" @click="updateDetail"></i> </span>	
+				<span v-show="!editDetail" v-html="c_detail"></span>
+				<v-textarea v-model="info.detail" v-show="editDetail" dense outlined auto-grow></v-textarea>				
 			</div>
-			  
 		  </v-list-item-content>		  
 		</v-list-item>
 		  <div style="width:100%;height:10px; background-color: #f2f2f2;" />
@@ -98,8 +97,14 @@
 						  <v-list-item-subtitle>
 							  <span class='text--primary' style="font-size:1.0em;">{{review.review_nickname}}</span> &#124; {{review.review_datetime.substring(0,10)}}
 						  </v-list-item-subtitle>
-						  <div style="height:10px"></div>
-						  <v-list-item-subtitle><span class='text--primary' style="font-size:1.0em;">{{review.review_content}}</span></v-list-item-subtitle>
+						  <div style="height:5px"></div>						  
+							<v-img
+							  :src = "'https://gunreview.ml/gunreview/resources/upload/'+review.review_img"
+							  max-height="100px"
+							  max-width="100px"
+							></v-img>
+							<div style="height:10px"></div>			
+							<v-list-item-subtitle><span class='text--primary' style="font-size:1.0em;">{{review.review_content}}</span></v-list-item-subtitle>
 						</v-list-item-content>
 					  </v-list-item>
 					  <v-divider :key="index + '_divider'" :inset="true"></v-divider>
@@ -132,16 +137,6 @@ export default {
 			this.getReviewList();
 		}
 	  },
-	  price(){
-		  http.put(`/api/infoProduct/${this.c_price}?name=${info.name}`).then(({data}) => {
-			  console.dir(data);
-		  })
-	  },
-	  detail(){
-		  http.put(`/api/infoProduct/${this.c_detail}?name=${info.name}`).then(({data}) => {
-			  console.dir(data);
-		  })
-	  }
   },
   data() {
 	return {
@@ -155,7 +150,7 @@ export default {
 		detail:'',
 		
 		editPrice: false,
-		editInfo: false,
+		editDetail: false,
 		
 		rules: [
 			value => !(value.length == 0 || value[0] == '0') || 'Invalid Number',
@@ -168,21 +163,27 @@ export default {
 	}	
   },
   computed: {
-    c_price() {
-	  let i = 0;		
-	  for(i in this.price){
-		  if(this.price[i] != '0')
-			  break;
-	  }		
-	  if(this.price.length <= 1)
-		  return this.price;
-      return this.price.substring(i);
-    },
 	c_detail(){
-		return this.detail.replaceAll("\n", "<br>");
+		return this.info.detail.replaceAll("\n", "<br>");
 	}
   },
   methods:{
+	  updatePrice(){
+		  this.editPrice = !this.editPrice;
+		  if(!this.editPrice){
+			  http.put(`/api/infoProduct/price/${this.info.name}/${this.info.price}`).then(({data}) => {
+				  console.dir(data);
+			  })
+		  }
+	  },
+	  updateDetail(){
+		  this.editDetail = !this.editDetail;
+		  if(!this.editDetail){
+			  http.put(`/api/infoProduct/detail/${this.info.name}/${this.info.detail}`).then(({data}) => {
+				  console.dir(data);
+			  })
+		  }
+	  },
 	  closeReview(){
 		this.$emit('closeReview');
 	  },
@@ -192,12 +193,14 @@ export default {
 	  getReviewList(){
 		  this.dialog2 = false;
 		  http.get('/api/reviewPX/all/' + this.info.name).then(({data}) => {				  			
+			  console.dir(data)
 				this.reviewList = data;
 				if(this.info.review_num){
 					this.average = (this.info.sum_rate/this.info.review_num).toFixed(1);					  	
 				}else{
 					this.average = 0;
 				}				  
+			  
 			})
 	  }
   },
