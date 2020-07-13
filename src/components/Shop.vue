@@ -136,6 +136,7 @@
     import http from '@/util/http-common.js';
     import axios from 'axios';
 	import PlaceReview from "@/components/PlaceReview.vue"
+	import cordova from 'cordova'
     String.prototype.replaceAll = function (org, dest) {
         return this.split(org).join(dest);
     };
@@ -219,6 +220,7 @@
                     }
                 });
                 this.markers = {};
+				cordova.plugins.Keyboard.hide()
             },
 			addShop(shop){
 				if(shop.review_num){

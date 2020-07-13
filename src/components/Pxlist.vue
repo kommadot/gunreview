@@ -1,5 +1,6 @@
 <template>
     <v-app>
+	<px-review :dialog="reviewDialog" :info="info" v-show="false" v-on:closeReview="reviewDialog=false"></px-review>
     <div id="px-year">{{ year }}년</div><!-- 클릭하면 연도 선택할 수 있는 달력 나오게 -->
 	<div id="px-month">
 		<button v-on:click="decrement">
@@ -41,7 +42,7 @@
 			<v-list-item><div style="width:100%; text-align:center">등록된 데이터가 없습니다.</div></v-list-item>
 		</v-list-item>
 	<template v-for="(pxitem, index) in pxList" v-if="pxitem.criteria==pxlistopt">
-	  <v-list-item :key="pxitem.no + '_item'" > 
+	  <v-list-item :key="pxitem.no + '_item'" @click="openPxReview(pxitem)"> 
 		  <!-- @click="" -->
 		<v-list-item-content>
 			<div class="eachpx">
@@ -87,7 +88,13 @@
 </template>
 <script>
 import http from '@/util/http-common.js';
+import PxReview from '@/components/PxReview.vue';
+	
 export default {
+  name: 'PxList',
+  components: {
+	PxReview,  
+  },
   data() {
     return {
 		pxlistoption: "판매금액순",
@@ -100,6 +107,7 @@ export default {
 		info: {},
 		pxList: [],
 		dialog: false,
+		reviewDialog: false,
 		picker: new Date().toISOString().substr(0, 7),
     }
   },
@@ -168,6 +176,11 @@ export default {
 			this.pxlistopt = "금액";
 			this.pxlistoptnum = 0;
 		}
+	},
+	openPxReview(info){
+		console.dir(info)
+		this.info = info;
+		this.reviewDialog = true;
 	}
   },
 };

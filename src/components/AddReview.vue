@@ -7,12 +7,14 @@
 		flat
 	  >	  
 		  <v-list-item>
-		  	<v-list-item-content>
-				<div class="reviewTitle">
-					<a href="#" style="color:#000000; float:left" @click="moveReviewList(true)">취소</a>					
-					<a href="#" style="float:right" @click="addReview">등록</a>
-					<div style="position:absolute; font-size:1.2em;text-align:center; width:100%">{{info.place_name}}</div>
-				</div>				
+		  	<v-list-item-content>				
+				<table>
+					<tr style="text-align:center">
+						<td width="15%" @click="moveReviewList(true)"><i class="fas fa-arrow-left"></i></td>
+						<td width="70%" style="font-size:1.2em;">{{type == 0 ? info.place_name : info.name}}</td>
+						<td width="15%" @click="addReview">등록</td>
+					</tr>	
+				</table>
 					<div class="write_grade">
 						<v-rating
 						  x-large						  
@@ -111,15 +113,14 @@ export default {
 			if(!confirm('정말로 취소하시겠습니까?')){
 				return;
 			}
-			this.dialog2 = false;
 		}else{
-			alert("등록이 완료되었습니다");					
-			this.$emit('writeReview');
-		}		
+			alert("등록이 완료되었습니다");							
+		}	
+		this.$emit('writeReview');
 	  },
 	  addReview(){		  
-	      let url = this.type == 0 ? '/api/reviewShop' : '/api/reviewPX';
-			http.post(url, {
+		  if(this.type == 0){
+			http.post('/api/reviewShop', {
 			  review_content: this.contents,
 			  review_img: this.img_path,
 			  review_nickname: this.nickname,
@@ -131,6 +132,21 @@ export default {
 					this.moveReviewList(false);
 				}
 			})
+		  }
+	      else{
+	  		http.post('/api/reviewPX', {
+	  			review_content: this.contents,
+				review_img: this.img_path,
+				review_nickname: this.nickname,
+				review_rate: this.rating,
+				review_userid: '',
+				review_productname: this.info.name
+  			}).then(({data}) => {
+				if(data == 'success'){
+					this.moveReviewList(false);
+				}
+			})
+  	      }
 	  }
   },
   created(){	   

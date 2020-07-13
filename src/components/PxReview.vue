@@ -1,7 +1,7 @@
 <template>  
-    <v-app id="Review">
-		<v-dialog v-model="dialog" fullscreen hide-overlay transition="dialog-bottom-transition">
-	
+    <v-app id="Review">	
+	  <add-review v-show="false" :dialog2="dialog2" :info="info" :rating="rating" type="1" v-on:writeReview="getReviewList"></add-review>
+	  <v-dialog v-model="dialog" fullscreen transition="dialog-bottom-transition">
       <v-card
 		class="mx-auto"		
 		tile
@@ -10,6 +10,9 @@
 		<v-list-item>
 		  <v-list-item-content>
 			<div style="text-align:center; margin-bottom:15px;">
+				<div style="float:left; margin-top:0.5em">
+					<i class="fas fa-arrow-left" @click="closeReview"></i>
+				</div>
 				<span class="text-h5 mb-2" style="display: inline-block;">{{info.name}}</span>			
 			</div>			
 			
@@ -67,7 +70,7 @@
 						></v-rating>
 					</div>
 					<div style="float:right;margin-top:1.0em;">
-						<i class="fas fa-user-friends" style="color:gray"></i>	{{count}}
+						<i class="fas fa-user-friends" style="color:gray"></i>	{{info.review_num}}
 					</div>
 				</div>
 				<v-card tile flat>
@@ -106,48 +109,60 @@
 			</v-list-item-content>
 		  </v-list-item>		  		  
 	  </v-card>	  
-	  <div style="height:100px;"></div>
-	</v-dialog>
-	
+	  </v-dialog>
     </v-app>
 </template>
 
 <script>
 import http from "@/util/http-common.js"
+import AddReview from "@/components/AddReview.vue"
 	
 String.prototype.replaceAll = function (org, dest) {
         return this.split(org).join(dest);
 };
 export default {
-  name: 'PlaceReview',   
+  name: 'PxReview',     
+  props: ['dialog', 'info'],
+  components:{
+	  AddReview,
+  },
   watch: {
-	  rating(){		  
-		  
+	  dialog(){		  
+		if(this.dialog == true){
+			this.getReviewList();
+		}
+	  },
+	  price(){
+		  http.put(`/api/infoProduct/${this.c_price}?name=${info.name}`).then(({data}) => {
+			  console.dir(data);
+		  })
+	  },
+	  detail(){
+		  http.put(`/api/infoProduct/${this.c_detail}?name=${info.name}`).then(({data}) => {
+			  console.dir(data);
+		  })
 	  }
   },
   data() {
 	return {
-		dialog:true,
+		dialog2:false,
 		
 		reviewList: [],
-		info: {},
 		rating: 0,
 		average: 0,
-		count: 0,
-		price: '0',
-		title: '',
 		id:0,
-		detail: 'test\ntest',
+		price:'0',
+		detail:'',
 		
 		editPrice: false,
 		editInfo: false,
 		
 		rules: [
-		value => !(value.length == 0 || value[0] == '0') || 'Invalid Number',
-        value => (value || '').length <= 10 || 'Max 10 characters',
-        value => {
-          const pattern = /^[0-9]*$/
-          return pattern.test(value) || 'Invalid Number'
+			value => !(value.length == 0 || value[0] == '0') || 'Invalid Number',
+			value => (value || '').length <= 10 || 'Max 10 characters',
+			value => {
+			  const pattern = /^[0-9]*$/
+			  return pattern.test(value) || 'Invalid Number'
         },
       ],
 	}	
@@ -168,31 +183,26 @@ export default {
 	}
   },
   methods:{
-	  openReviewWrite(event, value){
-		  this.$router.push(`addreview?title=${this.title}&id=${this.id}&rating=${this.rating}&type=1`);
+	  closeReview(){
+		this.$emit('closeReview');
 	  },
+	  openReviewWrite(event, value){
+		  this.dialog2 = true;
+	  },
+	  getReviewList(){
+		  this.dialog2 = false;
+		  http.get('/api/reviewPX/all/' + this.info.name).then(({data}) => {				  			
+				this.reviewList = data;
+				if(this.info.review_num){
+					this.average = (this.info.sum_rate/this.info.review_num).toFixed(1);					  	
+				}else{
+					this.average = 0;
+				}				  
+			})
+	  }
   },
   created(){	 
-	  this.id = this.$route.query.id;
-	  this.title = this.$route.query.title;	  	  
-	  console.dir(this.id);
-	  http.get('/api/px/' + this.id).then(({data}) => {
-		  console.dir(data);
-		  this.info = data;
-	  })
-	  
-	  http.get('/api/reviewPX/' + this.id).then(({data}) => {
-		  console.dir(data);
-		  if(data.length != 0) {
-			  this.reviewList = data;
-			  this.count = data.length;
-			  let sum = 0;
-			  for(let i in data){
-				  sum += parseInt(data[i].review_rate);
-			  }
-			  this.average = (sum/this.count).toFixed(1);
-		  }
-	  })
+	  console.dir(this.dialog);
   },    
 }
 </script>

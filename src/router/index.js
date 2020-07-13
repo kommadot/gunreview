@@ -9,6 +9,8 @@ import PxReview from '@/components/PxReview.vue'
 import AddReview from '@/components/AddReview.vue'
 import Pxlist from '@/components/Pxlist.vue'
 import Mypage from '@/components/MyPage.vue'
+import Myinfo from '@/components/MyInfo.vue'
+import Myreview from '@/components/MyReview.vue'
 import Layout from '@/layout/Layout.vue'
 import ST from '@/components/ShopTestList2.vue'
 
@@ -60,7 +62,16 @@ const routes = [
 				name: 'Mypage',
 				component:Mypage,
 			},
-			
+			{
+				path: '/myinfo',
+				name: 'Myinfo',
+				component:Myinfo,
+			},
+			{
+				path: '/myreview',
+				name: 'Myrevie',
+				component:Myreview,
+			},
 			{
 				path: '/login',
 				name: 'Login',
@@ -111,7 +122,6 @@ const routes = [
 ]
 
 const router = new VueRouter({
-  mode: 'history',
   base: process.env.BASE_URL,
   routes
 })

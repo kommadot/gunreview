@@ -10,7 +10,7 @@
 		<v-list-item>
 		  <v-list-item-content>			
 			<div style="text-align:center; margin-bottom:15px;">
-				<div style="float:left">
+				<div style="float:left">					
 					<i class="fas fa-arrow-left" @click="closeReview"></i>
 				</div>
 				<span class="text-h5 mb-2" style="display: inline-block;">{{info.place_name}}</span>				 
@@ -146,6 +146,7 @@ export default {
   watch: {
 	  dialog(){		  
 		if(this.dialog == true){
+			console.dir(this.info.id)
 			this.getReviewList();
 		}
 	  }
@@ -168,14 +169,12 @@ export default {
 	  getReviewList(){
 		  this.dialog2 = false;
 		  http.get('/api/reviewShop/' + this.info.id).then(({data}) => {				  
-				  if(data.length != 0) {
-					  this.reviewList = data;
-					  if(this.info.review_num == 0){
-					  	this.average = 0;
-					  }else{
-						this.average = (this.info.sum_rate/this.info.review_num).toFixed(1);
-					  }
-				  }			  
+				this.reviewList = data;
+				if(this.info.review_num == 0){
+					this.average = 0;
+				}else{
+					this.average = (this.info.sum_rate/this.info.review_num).toFixed(1);
+				}				 			  
 			})
 	  }
   },
