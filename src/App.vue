@@ -1,8 +1,12 @@
 <template>
-  <router-view />
+  <!-- <router-view /> -->
 </template>
 <script>
 export default {
-  name: "App"
+  name: "App",
+  created(){
+	console.dir('created')  
+  },
+  
 };
 </script>

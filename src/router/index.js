@@ -1,19 +1,14 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import Index from '@/components/Index.vue'
 import Shop from '@/components/Shop.vue'
-import ShopTestList from '@/components/ShopTestList.vue'
-import Test from '@/components/Test.vue'
+
 import PlaceReview from '@/components/PlaceReview.vue'
 import PxReview from '@/components/PxReview.vue'
 import AddReview from '@/components/AddReview.vue'
 import Pxlist from '@/components/Pxlist.vue'
 import Mypage from '@/components/MyPage.vue'
-import Myinfo from '@/components/MyInfo.vue'
-import Myreview from '@/components/MyReview.vue'
 import Layout from '@/layout/Layout.vue'
-import ST from '@/components/ShopTestList2.vue'
-
+import DI from '@/components/DataInput.vue'
 import Login from '@/components/Login.vue'
 Vue.use(VueRouter)
 const routes = [
@@ -26,11 +21,6 @@ const routes = [
 				path: '/',
 				name: 'Shop',
 				component:Shop
-			},
-			{
-				path: '/test',
-				name: 'Test',
-				component:Test,
 			},
 			{
 				path: '/placereview',
@@ -53,75 +43,33 @@ const routes = [
 				component:Pxlist,
 			},
 			{
-				path: '/shoptest',
-				name: 'ShopTestList',
-				component:ShopTestList
+				path: '/temp',
+				name: 'temp',
+				component:Pxlist,
 			},
 			{
 				path: '/mypage',
 				name: 'Mypage',
 				component:Mypage,
 			},
-			{
-				path: '/myinfo',
-				name: 'Myinfo',
-				component:Myinfo,
-			},
-			{
-				path: '/myreview',
-				name: 'Myrevie',
-				component:Myreview,
-			},
-			{
-				path: '/login',
-				name: 'Login',
-				component:Login,
-			},
+			
+
 		]
 	},
-	// {
-	// path: '/',
-	// name: 'Index',
-	// component: Index
-	// },
 	{
-		path: '/shop',
-		name: 'Shop',
-		component:Shop
+		path: '/login',
+		name: 'Login',
+		component:Login,
 	},
-		{
+	{
 		path: '/st',
 		name: 'St',
-		component:ST
+		component:DI
 	},
-	// {
-	// 	path: '/test',
-	// 	name: 'Test',
-	// 	component:Test,
-	// },
-	// {
-	// 	path: '/placereview',
-	// 	name: 'PlaceReview',
-	// 	component:PlaceReview,
-	// },
-	// {
-	// 	path: '/addreview',
-	// 	name: 'AddReview',
-	// 	component:AddReview,
-	// },
-	// {
-	// 	path: '/pxlist',
-	// 	name: 'Pxlist',
-	// 	component:Pxlist,
-	// },
-	// {
-	// 	path: '/shoptest',
-	// 	name: 'ShopTestList',
-	// 	component:ShopTestList
-	// },
 ]
 
 const router = new VueRouter({
+	mode: 'history',
   base: process.env.BASE_URL,
   routes
 })

@@ -1,6 +1,6 @@
 <template>  
     <v-app id="Review">
-		<add-review v-show="false" :dialog2="dialog2" :info="info" :rating="rating" type="0" v-on:writeReview="getReviewList"></add-review>
+		<add-review v-show="false" :dialog2="dialog2" :info="info" :rating="rating" :type="type" v-on:writeReview="getReviewList"></add-review>
 		<v-dialog v-model="dialog" fullscreen transition="dialog-bottom-transition">
       <v-card
 		class="mx-auto"		
@@ -14,7 +14,7 @@
 					<i class="fas fa-arrow-left" @click="closeReview"></i>
 				</div>
 				<span class="text-h5 mb-2" style="display: inline-block;">{{info.place_name}}</span>				 
-				<span class="grey--text mb-2"> {{info.category_group_name}} </span>
+				<span class="grey--text mb-2"> {{category}} </span>
 			</div>
 			<div class="place_nav">	
 				<div class="nav_btn">
@@ -39,9 +39,9 @@
 			</div>
 			
 			<div class="place_info">
-				<span class="info_elmt"><i class="fas fa-map-marker-alt" style="margin-right:10px"></i> {{info.road_address_name}}</span>
-				<span class="info_elmt"><i class="far fa-clock" style="margin-right:10px"></i> 영업시간</span>
-				<span class="info_elmt"><i class="fas fa-phone-alt" style="margin-right:10px"></i> {{info.phone}}</span>								
+				<span class="info_elmt" v-show='info.address_name'><i class="fas fa-map-marker-alt" style="margin-right:10px"></i> {{info.address_name}}</span>
+				<span class="info_elmt" v-show='info.openHour' v-html='openHour'></span>
+				<span class="info_elmt" v-show='info.phone'><i class="fas fa-phone-alt" style="margin-right:10px"></i> {{info.phone}}</span>								
 			</div>
 			  
 		  </v-list-item-content>		  
@@ -118,7 +118,7 @@
 							  max-width="100px"
 							></v-img>
 							<div style="height:10px"></div>			
-							<v-list-item-subtitle><span class='text--primary' style="font-size:1.0em;">{{review.review_content}}</span></v-list-item-subtitle>
+							<span class='text--primary' style="font-size:0.9em;" v-html="newLine(review.review_content)"></span>
 						</v-list-item-content>
 					  </v-list-item>
 					  <v-divider :key="index + '_divider'" :inset="true"></v-divider>
@@ -136,12 +136,18 @@
 <script>
 import http from "@/util/http-common.js"
 import AddReview from "@/components/AddReview.vue"
-	
+import store from "../store/index"
+String.prototype.replaceAll = function (org, dest) {
+        return this.split(org).join(dest);
+};
 export default {
   name: 'PlaceReview',   
   props: ['dialog', 'info'],
   components:{
 	  AddReview,
+  },
+  filters:{
+	
   },
   watch: {
 	  dialog(){		  
@@ -149,6 +155,17 @@ export default {
 			console.dir(this.info.id)
 			this.getReviewList();
 		}
+	  },
+	  info(){
+		  console.dir(this.info);		  
+		  if(this.info.type){
+		  	this.category = this.info.kind;
+			this.type = this.info.type;
+		  }else{
+			this.category = this.info.category_group_name;
+			this.type = 0;  
+			this.openHour = '<i class="far fa-clock" style="margin-right:10px"><br> <div style="margin-left:20px">' + this.info.openHour +'</div>'
+		  }
 	  }
   },
   data() {
@@ -156,19 +173,34 @@ export default {
 		reviewList: [],
 		rating: 0,
 		average: 0,
+		category: '',
 		dialog2: false,
+		openHour: '',
+		type: 0,
 	}	
   },
   methods:{
+	  newLine(x){
+		if(x){
+			return x.replaceAll("\n", "<br>");
+		}
+		return x
+	}, 
 	  closeReview(){
+		this.reviewList = [];
+		this.openHour = '';
 		this.$emit('closeReview');
 	  },
 	  openReviewWrite(event, value){
 		  this.dialog2 = true;
 	  },
 	  getReviewList(){
-		  this.dialog2 = false;
-		  http.get('/api/reviewShop/' + this.info.id).then(({data}) => {				  
+		  this.dialog2 = false;		  
+		  this.rating = '0';
+		  var url = this.info.type ? 'reviewWelfare' : 'reviewShop' 
+		  http.get(`/api/${url}/` + this.info.id,{headers: {
+			'Authorization' : store.state.access_token,
+		  }}).then(({data}) => {				  
 				this.reviewList = data;
 				if(this.info.review_num == 0){
 					this.average = 0;
@@ -176,6 +208,20 @@ export default {
 					this.average = (this.info.sum_rate/this.info.review_num).toFixed(1);
 				}				 			  
 			})
+		  
+		  var url2 = this.info.type ? 'welfare' : 'shop';
+		  http.get(`/api/${url2}/` + this.info.id,{headers: {
+			'Authorization' : store.state.access_token,
+		  }}).then(({data}) => {				  
+				this.info = data;
+				if(this.info.review_num == 0){
+					this.average = 0;
+				}else{
+					this.average = (this.info.sum_rate/this.info.review_num).toFixed(1);
+				}				 			  
+			})
+		  
+		 
 	  }
   },
   created(){	

@@ -20,18 +20,35 @@
 				<span class="info_elmt"><i class="fas fa-won-sign" style="float:left;"></i> 
 					
 					<div style="width:50%; float:left; margin:0px 10px;">
-						<span v-show="!editPrice">{{info.price}}원 </span>
-						<v-text-field v-model="info.price" :rules="rules" v-show="editPrice" dense height="1.0em" @keydown.enter="updatePrice">
+						<span v-show="!editPrice">{{info.price | addComma}}원 </span>
+						<v-text-field v-model="info.price" :rules="rules" v-show="editPrice" dense height="1.0em" @keydown.enter="validation">
 						</v-text-field>
 					</div>
-					<i class="far fa-edit" @click="updatePrice"></i> 
+					<i class="far fa-edit" @click="validation"></i> 
 				</span>
 				<span class="info_elmt">상세 정보 <i class="far fa-edit" @click="updateDetail"></i> </span>	
-				<span v-show="!editDetail" v-html="c_detail"></span>
+				<div style="height:10px" />
+				<span v-show="!editDetail" v-html="c_detail" style="margin-left:10px"></span>
 				<v-textarea v-model="info.detail" v-show="editDetail" dense outlined auto-grow></v-textarea>				
 			</div>
 		  </v-list-item-content>		  
 		</v-list-item>
+		  
+		  <div style="width:100%;height:10px; background-color: #f2f2f2;" />
+		  <v-list-item>
+		  	<v-list-item-content>
+				<span class="info_elmt"> 연도별 순위 </span>	
+				<v-sparkline
+				  :labels="lineLables"
+				  :value="lineValue"
+				  color="#42b3f4"
+				  line-width="2"
+				  padding="16"
+				  label-size="12"
+				></v-sparkline>
+			</v-list-item-content>
+		  </v-list-item>
+		  
 		  <div style="width:100%;height:10px; background-color: #f2f2f2;" />
 		  <v-list-item>
 		  	<v-list-item-content>
@@ -75,7 +92,7 @@
 				<v-card tile flat>
 				  <v-list three-line>
 					<v-list-item v-if="reviewList.length == 0">
-						<v-list-item><div style="width:100%; text-align:center">등록된 리뷰가 없습니다.</div></v-list-item>
+						<v-list-item><div style="width:100%; text-align:center; ">등록된 리뷰가 없습니다.</div></v-list-item>
 					</v-list-item>
 					<template v-for="(review, index) in reviewList">					  
 					  <v-list-item :key="review.no + '_item'" @click="">
@@ -121,6 +138,7 @@
 <script>
 import http from "@/util/http-common.js"
 import AddReview from "@/components/AddReview.vue"
+import store from "../store/index"
 	
 String.prototype.replaceAll = function (org, dest) {
         return this.split(org).join(dest);
@@ -134,10 +152,28 @@ export default {
   watch: {
 	  dialog(){		  
 		if(this.dialog == true){
+			console.dir(this.lineValue);
+			this.lineValue = [1,5,6,4,2,1];
+			for(let i = 0; i <= 5; i++){
+				console.dir()
+				if(!store.state.pxData[this.info.name] || !store.state.pxData[this.info.name][2015+i+''] || !store.state.pxData[this.info.name][2015+i+'']['rank']){
+					this.lineValue[i] = 21;
+				}else{
+				this.lineValue[i] = (store.state.pxData[this.info.name][2015+i+'']['rank'] + 21* (store.state.total[2015+i+''] - 										store.state.pxData[this.info.name][2015+i+'']['cnt'])) / store.state.total[2015+i+''];
+				}
+			}
+			console.dir(this.lineValue);
 			this.getReviewList();
 		}
 	  },
   },
+  filters: {
+	  addComma(x){
+		  if(x){
+			  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+		  }
+	  }  
+  },	
   data() {
 	return {
 		dialog2:false,
@@ -153,25 +189,34 @@ export default {
 		editDetail: false,
 		
 		rules: [
-			value => !(value.length == 0 || value[0] == '0') || 'Invalid Number',
-			value => (value || '').length <= 10 || 'Max 10 characters',
+			value => !(value.length == 0 || value[0] == '0') || '0으로 시작할 수 없습니다.',
+			value => (value || '').length <= 6 || '최대 6자까지 입력 가능합니다.',
 			value => {
 			  const pattern = /^[0-9]*$/
-			  return pattern.test(value) || 'Invalid Number'
+			  return pattern.test(value) || '숫자만 입력해 주세요'
         },
       ],
+		
+			
+		lineValue : [1,2,3,4,5,6],
+		lineLables : [2015,2016,2017,2018,2019,2020]
 	}	
   },
   computed: {
 	c_detail(){
-		return this.info.detail.replaceAll("\n", "<br>");
+		if(this.info.detail)
+			return this.info.detail.replaceAll("\n", "<br>");
+		else
+			return "상세정보가 없습니다.";
 	}
   },
   methods:{
 	  updatePrice(){
 		  this.editPrice = !this.editPrice;
 		  if(!this.editPrice){
-			  http.put(`/api/infoProduct/price/${this.info.name}/${this.info.price}`).then(({data}) => {
+			  http.put(`/api/infoProduct/price/${this.info.name}/${this.info.price}`,{headers: {
+			'Authorization' : store.state.access_token,
+		  }}).then(({data}) => {
 				  console.dir(data);
 			  })
 		  }
@@ -179,7 +224,9 @@ export default {
 	  updateDetail(){
 		  this.editDetail = !this.editDetail;
 		  if(!this.editDetail){
-			  http.put(`/api/infoProduct/detail/${this.info.name}/${this.info.detail}`).then(({data}) => {
+			  http.put(`/api/infoProduct/detail/${this.info.name}/${this.info.detail}`,{headers: {
+			'Authorization' : store.state.access_token,
+		  }}).then(({data}) => {
 				  console.dir(data);
 			  })
 		  }
@@ -192,7 +239,9 @@ export default {
 	  },
 	  getReviewList(){
 		  this.dialog2 = false;
-		  http.get('/api/reviewPX/all/' + this.info.name).then(({data}) => {				  			
+		  http.get('/api/reviewPX/all/' + this.info.name,{headers: {
+			'Authorization' : store.state.access_token,
+		  }}).then(({data}) => {				  			
 			  console.dir(data)
 				this.reviewList = data;
 				if(this.info.review_num){
@@ -202,6 +251,21 @@ export default {
 				}				  
 			  
 			})
+		  
+		  
+	  },
+	  validation(){
+		  console.log(this.info.price)
+		  if(this.editPrice){
+		  	const pattern = /^[0-9]*$/
+		  	if(this.info.price.length !== 0 && this.info.price[0] !== '0' && this.info.price.length<=6 && pattern.test(this.info.price)){
+				this.updatePrice()
+				this.editPrice = false;
+		  	}
+		  }else{
+			  this.editPrice = true;
+		  }
+			
 	  }
   },
   created(){	 

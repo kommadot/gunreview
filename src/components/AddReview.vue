@@ -11,7 +11,7 @@
 				<table>
 					<tr style="text-align:center">
 						<td width="15%" @click="moveReviewList(true)"><i class="fas fa-arrow-left"></i></td>
-						<td width="70%" style="font-size:1.2em;">{{type == 0 ? info.place_name : info.name}}</td>
+						<td width="70%" style="font-size:1.2em;">{{type != 1 ? info.place_name : info.name}}</td>
 						<td width="15%" @click="addReview">등록</td>
 					</tr>	
 				</table>
@@ -23,7 +23,7 @@
 						  background-color="grey lighten-1"
 						  color="red"								  
 						></v-rating>
-						<span style="20em">{{rating}} / <span style="color:gray;">5 &middot;</span> {{rating | gradeFilter}}</span>						
+						<span style="20em">{{rating}} / <span style="color:gray;">5 &middot;</span> {{rating | gradeFilter}}</span>						0
 					</div>
 					
 			  <v-textarea    
@@ -56,14 +56,20 @@
 			</v-list-item-content>
 		  </v-list-item>
 		  
-	  </v-card>	  
+	  </v-card>	
+		<v-overlay :value="drawer">
+        <v-progress-circular indeterminate size="64"></v-progress-circular>
+      </v-overlay>
 	  </v-dialog>
+
     </v-app>
 </template>
 
 <script>
 
 import http from "@/util/http-common.js"
+import {mapState} from "vuex";
+import store from "../store/index"
 	
 export default {
   name: 'AddReview',  
@@ -75,6 +81,7 @@ export default {
 		img_path: '',
 		nickname: '',
 		height:'300px',
+		drawer:false,
 	}	
   },
   filters: {
@@ -90,9 +97,10 @@ export default {
   methods:{
 	  changeImg(e){		
 		var frm = new FormData();
-		frm.append("upload_file", document.getElementById("file").files[0]);
+		frm.append("upload_file", document.getElementById("file").files[0]);		
 		http.post('/api/reviewShop/upload', frm, {
 		  headers: {
+			'Authorization' : store.state.access_token,
 			'Content-Type': 'multipart/form-data'
 		  }
 		})
@@ -103,6 +111,8 @@ export default {
 		})
 		.catch((error) => {
 		  // 예외 처리
+		}).finally(()=>{
+			this.drawer=false;
 		})
 	  },
 	  clickImg(){
@@ -113,48 +123,81 @@ export default {
 			if(!confirm('정말로 취소하시겠습니까?')){
 				return;
 			}
-		}else{
-			alert("등록이 완료되었습니다");							
-		}	
+		}
+		this.contents = '';
+		this.img_path = '';		
 		this.$emit('writeReview');
 	  },
-	  addReview(){		  
+	  addReview(){		
+		  this.nickname = this.nickList[Math.floor( Math.random() * 4 )];
+		  this.drawer=true;
+		  console.log(store.state.user_id)
 		  if(this.type == 0){
 			http.post('/api/reviewShop', {
 			  review_content: this.contents,
 			  review_img: this.img_path,
 			  review_nickname: this.nickname,
 			  review_rate: this.rating,
-			  review_userid: '',
+			  review_userid: store.state.user_id,
 			  shop_id: this.info.id
-			}).then(({data}) => {
+			},{headers: {
+			'Authorization' : store.state.access_token,
+		  }},).then(({data}) => {
 				if(data == 'success'){
 					this.moveReviewList(false);
 				}
-			})
+			}).finally(()=>{
+			this.drawer=false;
+		})
 		  }
-	      else{
+	      else if(this.type == 1){
 	  		http.post('/api/reviewPX', {
 	  			review_content: this.contents,
 				review_img: this.img_path,
 				review_nickname: this.nickname,
 				review_rate: this.rating,
-				review_userid: '',
+				review_userid: store.state.user_id,
 				review_productname: this.info.name
-  			}).then(({data}) => {
+  			},{headers: {
+			'Authorization' : store.state.access_token,
+		  }}).then(({data}) => {
 				if(data == 'success'){
 					this.moveReviewList(false);
 				}
-			})
-  	      }
+			}).finally(()=>{
+			this.drawer=false;
+		})
+  	      }else{
+			  console.dir(this.info)
+			  http.post('/api/reviewWelfare', {
+			  review_content: this.contents,
+			  review_img: this.img_path,
+			  review_nickname: this.nickname,
+			  review_rate: this.rating,
+			  review_userid: store.state.user_id,
+			  welfare_id: this.info.id
+			},{headers: {
+			'Authorization' : store.state.access_token,
+		  }},).then(({data}) => {
+				if(data == 'success'){
+					this.moveReviewList(false);
+				}
+			}).finally(()=>{
+			this.drawer=false;
+		})
+		  }
 	  }
   },
   created(){	   
-	  this.nickname = this.nickList[Math.floor( Math.random() * 4 )];
+	  
+	  console.dir(store.state.access_token);
   },
   mounted(){		
 	 //this.height = window.innerHeight - this.$refs.contents.$el.offsetTop - 200 + 'px';
-  }	
+  },
+	computed:{
+		...mapState(["user_id"])
+	}
 }
 </script>
 

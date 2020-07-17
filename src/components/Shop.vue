@@ -1,19 +1,58 @@
 <template>
     <v-app>
+		
 		<place-review :dialog="dialog" :info="info" v-show="false" v-on:closeReview="dialog=false"></place-review>
-        <div id="map" style="width: 100%; height: 100%; position: fixed;"></div>
+		<v-dialog
+		  v-model="orderDialog"
+		  max-width="290"
+		>
+			  <v-list flat>
+			  <v-subheader>정렬 기준</v-subheader>
+			  <v-list-item-group v-model="order" color="primary">				
+				<v-divider></v-divider>
+				<v-list-item>								  
+				  <v-list-item-content>
+					<v-list-item-title v-text="'평점순'"></v-list-item-title>
+				  </v-list-item-content>
+				  <v-list-item-icon>
+					 <v-icon dark right>mdi-check</v-icon>
+				  </v-list-item-icon>				
+				</v-list-item>
+				<v-divider></v-divider>
+				<v-list-item>								  
+				  <v-list-item-content>
+					<v-list-item-title v-text="'이용순'"></v-list-item-title>
+				  </v-list-item-content>
+				  <v-list-item-icon>
+					 <v-icon dark right>mdi-check</v-icon>
+				  </v-list-item-icon>
+				</v-list-item>
+				</v-list-item-group>
+				<v-divider></v-divider>
+				<v-list-item-group color="primary" mandatory>		
+				<v-list-item @click="orderDialog=false">			
+				  <v-list-item-content/>
+				  <v-list-item-icon>
+					  <v-list-item-title>취소</v-list-item-title>
+				  </v-list-item-icon>
+				</v-list-item>
+				</v-list-item-group>
+			</v-list>
+		</v-dialog>
+        <div id="map" style="width: 100%; height: 100%; position: fixed;" @touchstart="clickMap"></div>
         <div>
             <v-text-field
 				ref="searchField"
                 solo
+						  inner
 						  border-color="green darken-2"
-                label="Search"
-                append-icon="mdi-menu"
+                label="주소 검색"
+                prepend-inner-icon="mdi-menu"
                 v-model="searchTxt"
                 @keydown.enter="locationSearch"
                 class="ma-3"
-                style="opacity: 0.7;"
-                @click:append="drawer = !drawer"
+                style="opacity: 0.7;"		
+                @click:prepend-inner="drawer = !drawer"						  
 				@click="getFilter"
 				hide-details="true"
 				id="search"
@@ -55,34 +94,41 @@
 						</v-container>
                     <v-divider></v-divider>
 					<v-list-item>
-						<fieldset>
+						<fieldset >
 							<legend>
 								최소평점
 							</legend>
 								<v-rating						  
-								  v-model="average"
+								  v-model="minRate"
 								  half-increments
 								  half-icon="mdi-star-half-full"
 								  background-color="grey lighten-1"
 								  color="red"
+										  clearable
 								></v-rating>
 						</fieldset>
 					</v-list-item>
                 </v-list>
             </v-navigation-drawer>
+		
+		
 		      <v-snackbar
         v-model="snackbar"
         :timeout="2000"
 						  style="text-align:center;"
       >
         검색하고자 하는 카테고리를 골라주십시오.
-      </v-snackbar>
-		
-			
-	
-			<v-bottom-sheet v-model="sheet" scrollable>
-				<v-card tile>
-				<v-card-title @touchstart="onTouchStart"  @touchmove="onTouchMove">정렬 옵션 구현하기</v-card-title>
+      </v-snackbar>	
+			<v-bottom-sheet v-model="sheet" scrollable hide-overlay persistent>
+				<v-overlay :value="isLoading">
+        	<v-progress-circular indeterminate size="64"></v-progress-circular>
+      	</v-overlay>
+				<v-card tile @touchstart="onTouchStart"  @touchmove="onTouchMove">
+				<v-list  dense>
+					<div style="float:right; margin-right:10px" @click="orderDialog=true">				 	
+						{{order | orderToString}}<i class="fas fa-caret-down" style="color:gray"></i>
+					</div>
+				</v-list>
 				<v-divider></v-divider>
 				<v-card-text style="height: 200px;" ref="test" id="scroll-target" @touchstart="onTouchStart"  @touchmove="onTouchMove">
 					<v-layout
@@ -136,6 +182,8 @@
     import http from '@/util/http-common.js';
     import axios from 'axios';
 	import PlaceReview from "@/components/PlaceReview.vue"
+	import store from "../store/index"
+	
     String.prototype.replaceAll = function (org, dest) {
         return this.split(org).join(dest);
     };
@@ -144,7 +192,7 @@
 			PlaceReview,
         },
         data() {
-            return {
+            return {				
                 searchTxt: '',
                 shops: [],
                 map: null,
@@ -161,8 +209,9 @@
                 isClick: false,
 				
 				average:0,
+				minRate:0,
 				
-                keywords: [{name:"PC방",icon:"mdi-desktop-mac"},{name: '맛집',icon:"mdi-food"},{name: '영화관',icon:"mdi-popcorn"},{name:'모텔',icon:"mdi-bed"},{name:"찜질방",icon:"mdi-hot-tub"}],
+                keywords: [{name:"PC방",icon:"mdi-desktop-mac"},{name: '맛집',icon:"mdi-food"},{name: '영화관',icon:"mdi-popcorn"},{name:'모텔',icon:"mdi-bed"},{name:"찜질방",icon:"mdi-hot-tub"}, {name:"복지 시설", icon:"mdi-hospital-building"}],
                 drawer: null,
 				snackbar:null,
 				sheet: false,	
@@ -172,15 +221,36 @@
 				
 				dialog: false,
 				info:{},
+				
+				orderDialog: false,
+				order:null,
+				
+				curY: 0,
+				curX: 0,
+				
+				isLoading: false,
+				shopCount: 0,
             };
         },
+		filters: {
+			orderToString(order){
+				if(order == 0){
+					return "평점순"
+				}else if(order == 1){
+					return "이용순"
+				}else{
+					return "정렬"
+				}
+				
+			}
+		},
         created() {
 		},
         mounted() {
             this.geocoder = new kakao.maps.services.Geocoder();
             (this.mapContainer = document.getElementById('map')),
                 (this.mapOption = {
-                    center: new kakao.maps.LatLng(33.450701, 126.570667),
+                    center: new kakao.maps.LatLng(37.530162, 126.964185),
                     level: 3,
                 });
             this.map = new kakao.maps.Map(this.mapContainer, this.mapOption);
@@ -189,19 +259,24 @@
 			onTouchStart(e){
 				this.posY = e.targetTouches[0].clientY				
 			},
-			onTouchMove (e) {				
+			onTouchMove (e) {								
 				var maxHeight = this.$refs.test.scrollHeight
 				var height = this.$refs.test.clientHeight;
 				this.$refs.test.style.height = (parseInt(this.$refs.test.style.height) + this.posY - e.targetTouches[0].clientY)+'px';
 				this.posY = e.targetTouches[0].clientY;
 				this.offsetTop = parseInt(this.$refs.test.style.height) - height;				
 				if(parseInt(this.$refs.test.style.height) > maxHeight)
-					this.$refs.test.style.height = maxHeight + 'px';							
+					this.$refs.test.style.height = maxHeight + 'px';	
+				if(parseInt(this.$refs.test.style.height) == 0){
+					this.sheet = false;
+				}
+				
 			},
 			onScroll(e) {
 				$('#scroll-target').scrollTop(this.offsetTop);
 			},
 			getFilter(){
+				this.sheet = false;
 				if(this.checkedCategory.length===0){
 					this.drawer=true;
 					this.snackbar=true;
@@ -209,8 +284,12 @@
 				}
 			},
             locationSearch() {
+				this.isLoading = true;
+				this.shopCount = 0;
                 this.geocoder.addressSearch(this.searchTxt, (result, status) => {
                     if (status === kakao.maps.services.Status.OK) {
+						this.curY = result[0].y;
+						this.curX = result[0].x;
 						this.shops = []
                         this.location = new kakao.maps.LatLng(result[0].y, result[0].x);
                         this.map.setCenter(this.location);
@@ -218,20 +297,27 @@
 						this.sheet = true;
                     }
                 });
-                this.markers = {};
-				
-				
-				
+                this.markers = {};				
             },
 			addShop(shop){
 				if(shop.review_num){
 					shop.average = (shop.review_num == 0 ? 0 : shop.sum_rate / shop.review_num).toFixed(1);
 				}else{
-					shop.review_num = 0;
+					shop.average = 0;
 				}
-				this.shops.push(shop);
+				if(this.minRate <= parseFloat(shop.average)){
+					this.shops.push(shop);
+					this.addMarker(shop);
+					this.shopCount--;
+					if(this.shopCount == 0){
+						this.isLoading = false;
+					}
+				}
 			},
 			uploadPlace(shop){
+				this.showPlaceReview(shop);
+			},
+			uploadPlace2(shop){
 				http.post('/api/shop', {
 					address_name: shop.address_name ,
 					category_group_code: shop.category_group_code ,
@@ -243,20 +329,22 @@
 					place_name: shop.place_name,
 					place_url: shop.place_url,
 				    road_address_name: shop.road_address_name
-				}).catch(() => {
-					this.showPlaceReview(shop.id);
-				});
+				},{headers: {
+			'Authorization' : store.state.access_token,
+		  }})
 											
 			},
-			showPlaceReview(id){
-				http.get('/api/shop/'+id).then(({data})=>{
-					this.info = data;
-					this.dialog = true;
-				})
-				
+			showPlaceReview(shop){
+				this.info = shop;
+				this.dialog = true;
+			},
+			clickMap(){
+				this.$refs.test.style.height = '0px';
 			},
             getPlace(result) {
-                http.get('/api/shop/' + result.id).then(({ data }) => {
+                http.get('/api/shop/' + result.id,{headers: {
+			'Authorization' : store.state.access_token,
+		  }}).then(({ data }) => {
                     if(data.length===0){
 						http.post('/api/shop', {
 						  address_name: result.address_name ,
@@ -269,12 +357,33 @@
 						  place_name: result.place_name,
 						  place_url: result.place_url,
 						  road_address_name: result.road_address_name
-						})
-					}
-					
+						},{headers: {
+					'Authorization' : store.state.access_token,
+		  			}})
+					}					
                 });
             },
+			addMarker(result){
+				console.dir(result);
+				var uploadPlace = this.uploadPlace;
+				var showPlaceReview = this.showPlaceReview;
+				let coords = new kakao.maps.LatLng(
+					result.lat,
+					result.lng
+				);
+				let marker = new kakao.maps.Marker({
+					map: this.map,
+					position: coords,
+				});
+				kakao.maps.event.addListener(marker, 'click', function (
+					el
+				) {
+					showPlaceReview(result);											
+				});
+				//this.array.push(marker);	
+			},
 			getMarkers(){
+				console.dir(this.checkedCategory)
 				for (let key in this.markers) {
                     this.markers[key].forEach((marker) => {
                         marker.setMap(null);
@@ -282,57 +391,55 @@
                 }
 
                 this.checkedCategory.forEach((element) => {
-                    if (this.markers[element.name] !== undefined) {
-                        this.markers[element.name].forEach((marker) => {
-                            marker.setMap(this.map);
-                        });
-                    } else {
                         let places = new kakao.maps.services.Places();
                         var map = this.map;
                         var getPlace = this.getPlace;
                         var array = [];
 						var uploadPlace = this.uploadPlace;
+						var uploadPlace2 = this.uploadPlace2;
 						var addShop = this.addShop;
+					
+						if(element.name == '복지 시설'){
+							axios.get('https://gunreview.ml/gunreview/api/welfare',{headers: {
+											'Authorization' : store.state.access_token
+										  }}).then(({data}) => {
+								this.shopCount += data.length
+								for(let i in data) {
+									console.dir(data[i]);
+									addShop(data[i]);
+								}								
+							})
+						}else{					
                         places.keywordSearch(
                             element.name,
-                            (result, status) => {								
-													
+                            (result, status) => {									
                                 if (status === kakao.maps.services.Status.OK) {
+									this.shopCount += result.length;
                                     for (let i in result) {
-										http.get('/api/shop/'+result[i].id).then(({data}) => {
+										axios.get('https://gunreview.ml/gunreview/api/shop/'+result[i].id,{headers: {
+											'Authorization' : store.state.access_token,
+											"Content-type": "application/json"
+										  }}).then(({data}) => {
 											if(data.length == 0){
-												addShop(result[i]);
-											}else{
-												addShop(data); 
+												uploadPlace2(result[i]);
+												result[i].sum_rate = 0
+												result[i].review_num = 0;
+												addShop(result[i])
 											}
-										});
-                                        let coords = new kakao.maps.LatLng(
-                                            result[i].y,
-                                            result[i].x
-                                        );
-
-                                        // 결과값으로 받은 위치를 마커로 표시합니다
-                                        let marker = new kakao.maps.Marker({
-                                            map: this.map,
-                                            position: coords,
-                                        });
-                                        kakao.maps.event.addListener(marker, 'click', function (
-                                            el
-                                        ) {
-											console.dir(result[i].id);
-											uploadPlace(result[i]);											
-											//window.open(`placereview?title=${result[i].place_name}&id=${result[i].id}`);
-                                        });
-										// kakao.maps.event.addListener(marker, 'click',getPlace(result[i]))
-                                        array.push(marker);
+											else{
+												addShop(data);												
+											}
+										})
+                                        
                                     }
                                 }
                             },
                             { location: this.location }
                         );
                         this.markers[element.name] = array;
-                    }
-                });
+					}
+                    
+                })
 			}
         },
         computed: {
@@ -348,72 +455,45 @@
             },
         },
         watch: {
-            checkedCategory() {
-								// for (let key in this.markers) {
-								// this.markers[key].forEach((marker) => {
-								// marker.setMap(null);
-								// });
-								// }
-
-								// this.checkedCategory.forEach((element) => {
-								// if (this.markers[element.name] !== undefined) {
-								// this.markers[element.name].forEach((marker) => {
-								// marker.setMap(this.map);
-								// });
-								// } else {
-								// let places = new kakao.maps.services.Places();
-								// var map = this.map;
-								// var getPlace = this.getPlace;
-								// var array = [];
-								// places.keywordSearch(
-								// element.name,
-								// (result, status) => {
-								// this.shops = result;
-								// this.sheet = true;
-								// if (status === kakao.maps.services.Status.OK) {
-								// for (let i in result) {
-								// let coords = new kakao.maps.LatLng(
-								// result[i].y,
-								// result[i].x
-								// );
-
-								// // 결과값으로 받은 위치를 마커로 표시합니다
-								// let marker = new kakao.maps.Marker({
-								// map: this.map,
-								// position: coords,
-								// });
-								// kakao.maps.event.addListener(marker, 'click', function (
-								// el
-								// ) {
-								// 			http.post('/api/shop', {
-								// 			  address_name: result[i].address_name ,
-								// 			  category_group_code: result[i].category_group_code ,
-								// 			  category_group_name: result[i].category_group_name ,
-								// 			  id: result[i].id ,
-								// 			  lat: result[i].y,
-								// 			  lng: result[i].x,
-								// 			  phone: result[i].phone,
-								// 			  place_name: result[i].place_name,
-								// 			  place_url: result[i].place_url,
-								// 			  road_address_name: result[i].road_address_name
-								// 			})
-								// 			window.open(`placereview?title=${result[i].place_name}&id=${result[i].id}`);
-								// });
-								// 		// kakao.maps.event.addListener(marker, 'click',getPlace(result[i]))
-								// array.push(marker);
-								// }
-								// }
-								// },
-								// { location: this.location }
-								// );
-								// this.markers[element.name] = array;
-								// }
-								// });
-				//this.getMarkers();
-            },
+            order(){
+				this.isLoading = true;
+				this.shops = [];
+				if(this.order != null){
+					http.get(`/api/shop/loc/${this.curY}/${this.curX}`,{headers: {
+			'Authorization' : store.state.access_token,
+		  }}).then(({data}) => {
+						console.dir(data)
+						for(let i in data) {	
+							data[i].average = (data[i].review_num == 0 ? 0 : data[i].sum_rate / data[i].review_num).toFixed(1);
+						}
+						if(this.order == 0){							
+							data.sort(function(a, b) { // 내림차순	
+								return parseFloat(b.average) - parseFloat(a.average);
+							});
+						}else{
+							data.sort(function(a, b) { // 내림차순								
+								return parseFloat(b.review_num) - parseFloat(a.review_num);
+							});
+						}
+						console.dir(data)
+						for(let i in data) {	
+							this.addShop(data[i])
+						}
+					}).finally(() => {
+						this.isLoading = false;
+					})
+				}else{
+					this.getMarkers();
+				}
+			}
         },
     };
+	// 서버 요청 id -> 있 -> 최소평점 거르기 : 없으면 -> 서버등록 -> 받아오기 -> 최소평점 거르기.
 </script>
+0
+
+rate
+
 
 <style scoped>
 	fieldset{
